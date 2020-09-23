@@ -7,20 +7,11 @@ const app = express();
 const PORT = 5000;
 
 app.set("PORT", PORT);
-// app.use(bodyParser.json());
-// app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: false }));
 app.use(morgan("tiny"));
 
-app.use((req, res, next) => {
-  console.log(req.url);
-  if (req.query.authorized !== "1") {
-    res.status(401);
-    return;
-  }
-  next();
-});
-
-app.use((req, res) => res.send("hi"));
+app.use("/api", require("./src/api"));
 
 app.listen(5000, () => {
   console.log(`listening on ${app.settings.PORT}`);
