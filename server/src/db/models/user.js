@@ -1,7 +1,8 @@
-"use strict";
-const dotenv = require("dotenv");
-const crypto = require("crypto");
-const { Model } = require("sequelize");
+'use strict';
+const dotenv = require('dotenv');
+const crypto = require('crypto');
+const { Model } = require('sequelize');
+const jwt = require('jsonwebtoken');
 
 dotenv.config();
 
@@ -18,23 +19,36 @@ module.exports = (sequelize, DataTypes) => {
     {
       hooks: {
         beforeCreate: (data, option) => {
-          let shasum = crypto.createHmac("sha512", process.env.SECRET_KEY);
+          let shasum = crypto.createHmac('sha512', process.env.SECRET_KEY);
           shasum.update(data.password);
-          data.password = shasum.digest("hex");
+          data.password = shasum.digest('hex');
         },
         beforeFind: (data, option) => {
           if (data.where.password) {
-            let shasum = crypto.createHmac("sha512", process.env.SECRET_KEY);
+            let shasum = crypto.createHmac('sha512', process.env.SECRET_KEY);
             shasum.update(data.where.password);
-            data.where.password = shasum.digest("hex");
+            data.where.password = shasum.digest('hex');
           }
         },
       },
       sequelize,
-      modelName: "User",
-      charset: "utf8mb4",
-      collate: "utf8mb4_general_ci",
+      modelName: 'User',
+      charset: 'utf8mb4',
+      collate: 'utf8mb4_general_ci',
     }
   );
+  User.prototype.generateToken = function () {
+    const token = jwt.sign(
+      {
+        _id: this.id,
+        email: this.email,
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: '7d',
+      }
+    );
+    return token;
+  };
   return User;
 };

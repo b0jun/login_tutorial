@@ -1,8 +1,9 @@
-const { User } = require("../../db/models");
+const { User } = require('../../db/models');
 
 module.exports = {
   signup: async (req, res, next) => {
     const { name, password, email } = req.body;
+
     try {
       const users = await User.findOrCreate({
         where: {
@@ -15,8 +16,14 @@ module.exports = {
         },
       }).then(async ([user, created]) => {
         if (!created) {
-          return res.status(409).send("Already exists user");
+          return res.status(409).send('Already exists user');
         }
+        /* 토큰 설정 */
+        const token = user.generateToken();
+        res.cookie('access_token', token, {
+          maxAge: 1000 * 60 * 60 * 24 * 7,
+          httpOnly: true,
+        });
         const data = await user.get({ plain: true });
         res.status(200).json(data);
       });
@@ -29,7 +36,7 @@ module.exports = {
   signin: async (req, res, next) => {
     const { email, password } = req.body;
     if (!email || !password) {
-      res.status(401).send("Unauthorized");
+      res.status(401).send('Unauthorized');
       return;
     }
     try {
@@ -40,8 +47,14 @@ module.exports = {
         },
       });
       if (result === null) {
-        res.status(404).send("unvalid user");
+        res.status(404).send('unvalid user');
       } else {
+        /* 토큰 설정 */
+        const token = result.generateToken();
+        res.cookie('access_token', token, {
+          maxAge: 1000 * 60 * 60 * 24 * 7,
+          httpOnly: true,
+        });
         res.status(200).json({ id: result.id });
       }
     } catch (error) {
@@ -50,9 +63,16 @@ module.exports = {
     }
   },
   check: (req, res, next) => {
-    res.send("hi");
+    const { user } = res.locals;
+    console.log(user);
+    if (!user) {
+      res.status(401).send('Unauthorized');
+      return;
+    }
+    res.send(user);
   },
   logout: (req, res, next) => {
-    res.send("hi");
+    res.clearCookie('access_token');
+    res.status(204).send('logout success');
   },
 };
